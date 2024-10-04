@@ -15,6 +15,7 @@ This is a training tool and visualisation tool which I primarily use for myself.
 
 ## Features
 
+* read your expanses and income as csv and makes it available for python 
 * view your balance over the entire exported CSV time-range - or over the last N months
 * view pie charts of your expenses and income
   * find out your largest expenses to optimise them
