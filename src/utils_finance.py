@@ -7,6 +7,7 @@ import seaborn as sns
 # Import System libraries
 import sys
 import os
+import inspect
 
 # Visualization libraries
 import matplotlib.pyplot as plt  # For Matplotlib visualizations
@@ -92,6 +93,12 @@ def income_expense_trend(df, path):
     - df: DataFrame containing the data.
     - plot_path: Path to save the figure.
     """
+    # Get the function name dynamically
+    function_name = inspect.currentframe().f_code.co_name
+    
+    # Construct the path to save the figure with the function name
+    path_saving = os.path.join(path, f'{function_name}.png')
+
     # Ensure 'Buchungsdatum' is datetime
     df['Buchungsdatum'] = pd.to_datetime(df['Buchungsdatum'], errors='coerce')
     df = df.dropna(subset=['Buchungsdatum'])
@@ -107,10 +114,10 @@ def income_expense_trend(df, path):
     plt.xticks(rotation=45)
     plt.grid()
     plt.tight_layout()
-    plt.savefig(path + '/income_expense_trend')  # Save figure
-    plt.close()
+    plt.savefig(path_saving)  # Save figure
+    plt.show
 
-    return path
+    return path_saving
 
 def average_monthly_stats(df):
     """
@@ -134,18 +141,27 @@ def detect_recurring_transactions(df):
     
     return recurring, recurring_summary
 
-def plot_recurring_summary(recurring_summary):
+def plot_recurring_summary(recurring_summary, path):
     """
     Plots a summary of recurring transactions.
     """
+    # Get the function name dynamically
+    function_name = inspect.currentframe().f_code.co_name
+    
+    # Construct the path to save the figure with the function name
+    path_saving = os.path.join(path, f'{function_name}.png')
+
     plt.figure(figsize=(10, 6))
     sns.barplot(data=recurring_summary.head(10), x='Count', y='Zahlungsempfänger*in', hue='Betrag (€)')
     plt.title('Top 10 Recurring Transactions')
     plt.xlabel('Count')
     plt.ylabel('Recipient')
     plt.legend(title='Amount (€)')
+    plt.savefig(path_saving)  # Save figure
     plt.show()
-
+    
+    return path_saving
+    
 def expense_income_ratio(df):
     """
     Calculates the expense-to-income ratio per month.
@@ -176,10 +192,16 @@ def detect_outliers(df, threshold=3):
     print("\nOutliers:")
     print(outliers[['Buchungsdatum', 'Betrag (€)', 'Verwendungszweck']])
 
-def savings_percentage(df):
+def savings_percentage(df, path):
     """
     Calculates and visualizes monthly savings percentage.
     """
+    # Get the function name dynamically
+    function_name = inspect.currentframe().f_code.co_name
+    
+    # Construct the path to save the figure with the function name
+    path_saving = os.path.join(path, f'{function_name}.png')
+
     df['Buchungsdatum'] = pd.to_datetime(df['Buchungsdatum'])
     df['month'] = df['Buchungsdatum'].dt.to_period('M')
     income = df[df['Betrag (€)'] > 0].groupby('month')['Betrag (€)'].sum()
@@ -195,12 +217,21 @@ def savings_percentage(df):
     plt.grid()
     plt.axhline(0, color='red', linestyle='--')
     plt.tight_layout()
+    plt.savefig(path_saving)  # Save figure
     plt.show()
+    return path_saving
 
-def cash_flow_volatility(df):
+
+def cash_flow_volatility(df, path):
     """
     Calculates and visualizes cash flow stability.
     """
+    # Get the function name dynamically
+    function_name = inspect.currentframe().f_code.co_name
+    
+    # Construct the path to save the figure with the function name
+    path_saving = os.path.join(path, f'{function_name}.png')
+
     df['Buchungsdatum'] = pd.to_datetime(df['Buchungsdatum'])
     df['month'] = df['Buchungsdatum'].dt.to_period('M')
     monthly_balance = df.groupby('month')['Betrag (€)'].sum()
@@ -216,12 +247,20 @@ def cash_flow_volatility(df):
     plt.legend()
     plt.grid()
     plt.tight_layout()
+    plt.savefig(path_saving)  # Save figure
     plt.show()
+    return path_saving
 
-def income_by_source(df):
+def income_by_source(df, path):
     """
     Analyzes and visualizes income sources.
     """
+    # Get the function name dynamically
+    function_name = inspect.currentframe().f_code.co_name
+    
+    # Construct the path to save the figure with the function name
+    path_saving = os.path.join(path, f'{function_name}.png')
+
     df['Betrag (€)'] = pd.to_numeric(df['Betrag (€)'], errors='coerce')
     income_data = df[df['Betrag (€)'] > 0]
     income_summary = income_data.groupby('Zahlungspflichtige*r')['Betrag (€)'].sum()
@@ -234,7 +273,9 @@ def income_by_source(df):
     plt.xticks(rotation=45, ha='right')
     plt.grid(axis='y')
     plt.tight_layout()
+    plt.savefig(path_saving)  # Save figure
     plt.show()
+    return path_saving
 
 def fix_euro_amounts(df, column_name='Betrag (€)'):
     """
@@ -369,7 +410,7 @@ def print_unique_values(df):
     return
 
 
-def plot_monthly_income_vs_expenses_to_pdf(df):
+def plot_monthly_income_vs_expenses_to_pdf(df, path):
     """
     Plots a stacked bar chart of monthly income versus expenses.
 
@@ -380,6 +421,12 @@ def plot_monthly_income_vs_expenses_to_pdf(df):
     using a stacked bar chart. It categorizes the transactions as 'Income' or 'Expenses' based on
     the transaction amounts and groups them by month for comparison.
     """
+    # Get the function name dynamically
+    function_name = inspect.currentframe().f_code.co_name
+    
+    # Construct the path to save the figure with the function name
+    path_saving = os.path.join(path, f'{function_name}.png')
+
     # Ensure 'Buchungsdatum' is in datetime format
     df['Buchungsdatum'] = pd.to_datetime(df['Buchungsdatum'])
 
@@ -400,5 +447,202 @@ def plot_monthly_income_vs_expenses_to_pdf(df):
     ax.set_ylabel('Amount (€)')
     plt.xticks(rotation=45)
     plt.tight_layout()  # Adjust layout to prevent clipping
+    plt.savefig(path_saving)  # Save figure
+    plt.show()
+    return path_saving
 
-    return fig
+def plot_total_income_expenses(df, path):
+    """
+    Plots total income and expenses from the given DataFrame.
+    
+    Parameters:
+    df (DataFrame): The DataFrame containing financial data with a 'Betrag (€)' column.
+    """
+    # Get the function name dynamically
+    function_name = inspect.currentframe().f_code.co_name
+    
+    # Construct the path to save the figure with the function name
+    path_saving = os.path.join(path, f'{function_name}.png')
+
+    # Calculate total income: sum of all positive amounts in 'Betrag (€)'
+    total_income = df[df['Betrag (€)'] > 0]['Betrag (€)'].sum()
+
+    # Calculate total expenses: sum of all negative amounts in 'Betrag (€)' (make positive for display)
+    total_expenses = df[df['Betrag (€)'] < 0]['Betrag (€)'].sum()
+
+    # Prepare data for plotting as a dictionary
+    totals = {'Income': total_income, 'Expenses': abs(total_expenses)}  # Convert expenses to positive
+
+    # Create a bar plot using Seaborn
+    plt.figure(figsize=(8, 5))  # Set figure size
+    sns.barplot(x=list(totals.keys()), y=list(totals.values()), palette='muted')
+
+    # Set the title and labels for the plot
+    plt.title("Total Income vs Expenses")
+    plt.ylabel("Amount (€)")
+    plt.savefig(path_saving)  # Save figure
+    plt.show()
+
+    return path_saving
+
+def plot_monthly_savings(df, path):
+    """
+    Plots monthly savings over time.
+    
+    Parameters:
+    df (DataFrame): The DataFrame containing financial data with 'Buchungsdatum' and 'Betrag (€)' columns.
+    """
+    # Get the function name dynamically
+    function_name = inspect.currentframe().f_code.co_name
+    
+    # Construct the path to save the figure with the function name
+    path_saving = os.path.join(path, f'{function_name}.png')
+
+    # Ensure 'Buchungsdatum' is in datetime format
+    df['Buchungsdatum'] = pd.to_datetime(df['Buchungsdatum'], errors='coerce')
+
+    # Group by month and calculate total savings (income minus expenses)
+    df['month'] = df['Buchungsdatum'].dt.to_period('M')  # Extract month
+    monthly_savings = df.groupby('month')['Betrag (€)'].sum().reset_index()
+
+    # Convert 'month' back to a datetime object for plotting
+    monthly_savings['month'] = monthly_savings['month'].dt.to_timestamp()
+
+    # Plot
+    plt.figure(figsize=(10, 5))  # Set figure size
+    sns.lineplot(x='month', y='Betrag (€)', data=monthly_savings, marker='o')
+    
+    # Set title and labels
+    plt.title('Monthly Savings')
+    plt.ylabel('Savings (€)')
+    plt.xlabel('Month')
+    plt.xticks(rotation=45)  # Rotate x-axis labels for better readability
+    plt.grid()  # Add grid for better visualization
+    plt.tight_layout()  # Adjust layout to prevent clipping
+    plt.savefig(path_saving)  # Save figure
+    plt.show()
+
+    return path_saving
+
+def plot_largest_expenses_income(df, path):
+    """
+    Plots the top 5 sources of income and the top 5 expenses in pie charts.
+    
+    Parameters:
+    df (DataFrame): The DataFrame containing financial data with 'Betrag (€)', 'Zahlungspflichtige*r', and 'Zahlungsempfänger*in' columns.
+    """
+    # Get the function name dynamically
+    function_name = inspect.currentframe().f_code.co_name
+    
+    # Construct the path to save the figure with the function name
+    path_saving = os.path.join(path, f'{function_name}.png')
+    # Top 5 sources of income
+    top_income = df[df['Betrag (€)'] > 0].groupby('Zahlungspflichtige*r')['Betrag (€)'].sum().nlargest(5)
+    
+    # Top 5 expenses (convert to positive values for plotting)
+    top_expenses = df[df['Betrag (€)'] < 0].groupby('Zahlungsempfänger*in')['Betrag (€)'].sum().nsmallest(5)
+    top_expenses = top_expenses.abs()  # Convert expenses to positive values
+
+    # Plot top 5 income sources
+    plt.figure(figsize=(12, 6))  # Set figure size
+    
+    # Subplot for income
+    plt.subplot(1, 2, 1)
+    top_income.plot(kind='pie', autopct='%1.1f%%', startangle=90, colormap='Blues')
+    plt.title("Top 5 Income Sources")
+    plt.ylabel('')  # Hide the y-label for pie chart
+
+    # Subplot for expenses
+    plt.subplot(1, 2, 2)
+    top_expenses.plot(kind='pie', autopct='%1.1f%%', startangle=90, colormap='Reds')
+    plt.title("Top 5 Expenses")
+    plt.ylabel('')  # Hide the y-label for pie chart
+    
+    plt.tight_layout()  # Adjust layout to prevent overlapping
+    plt.savefig(path_saving)  # Save figure
+    plt.show()
+
+    return path_saving
+
+def plot_transaction_distribution(df, path):
+    """
+    Plots the distribution of transaction amounts using a histogram.
+
+    Parameters:
+    df (DataFrame): The DataFrame containing financial data with a 'Betrag (€)' column.
+
+    This function generates a histogram that shows the frequency of transaction amounts,
+    along with a Kernel Density Estimate (KDE) line to visualize the distribution's shape.
+    The y-axis is set to a logarithmic scale to better visualize the distribution of 
+    transaction amounts, especially when dealing with a wide range of values.
+    """    
+    # Get the function name dynamically
+    function_name = inspect.currentframe().f_code.co_name
+    
+    # Construct the path to save the figure with the function name
+    path_saving = os.path.join(path, f'{function_name}.png')
+
+    plt.figure(figsize=(20, 4)) 
+
+    # Create the histogram with a KDE line
+    sns.histplot(df['Betrag (€)'], kde=True)
+
+    # Set the title and labels
+    plt.title("Distribution of Transaction Amounts")
+    plt.xlabel("Amount (€)")
+    plt.ylabel("Frequency (Log Scale)")
+
+    # Show and save the plot
+    plt.savefig(path_saving)  # Save figure
+    plt.show()
+
+    return path_saving
+
+def plot_monthly_income_vs_expenses(df, path):
+    """
+    Plots a stacked bar chart of monthly income versus expenses.
+
+    Parameters:
+    df (DataFrame): The DataFrame containing financial data with 'Buchungsdatum' and 'Betrag (€)' columns.
+    path (str): The folder path where the plot will be saved.
+
+    Returns:
+    str: The full path of the saved image.
+    """
+    # Get the function name dynamically
+    function_name = inspect.currentframe().f_code.co_name
+    
+    # Construct the path to save the figure with the function name
+    path_saving = os.path.join(path, f'{function_name}.png')
+
+    # Ensure 'Buchungsdatum' is in datetime format
+    df['Buchungsdatum'] = pd.to_datetime(df['Buchungsdatum'])
+
+    # Create a new column for the month
+    df['month'] = df['Buchungsdatum'].dt.to_period('M').astype(str)
+
+    # Classify transactions as Income or Expenses
+    df['Type'] = df['Betrag (€)'].apply(lambda x: 'Income' if x > 0 else 'Expenses')
+
+    # Group by month and transaction type, summing the amounts
+    monthly_data = df.groupby(['month', 'Type'])['Betrag (€)'].sum().unstack(fill_value=0)
+
+    # Plotting with Matplotlib
+    fig, ax = plt.subplots(figsize=(10, 6))
+    
+    monthly_data.plot(kind='bar', stacked=True, ax=ax, color=['#2ca02c', '#d62728'])  # Colors for Income/Expenses
+    ax.set_title('Monthly Income vs Expenses')
+    ax.set_xlabel('Month')
+    ax.set_ylabel('Amount (€)')
+    ax.legend(title='Type')
+    plt.xticks(rotation=45)  # Rotate month labels for better visibility
+
+    # Save the figure
+    plt.tight_layout()  # Adjust layout for saving
+    plt.savefig(path_saving)  # Save the plot as a PNG file
+    plt.show()  # Show the plot
+
+    return path_saving
+
+
+
