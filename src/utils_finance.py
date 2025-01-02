@@ -11,9 +11,16 @@ import inspect
 
 # Visualization libraries
 import matplotlib.pyplot as plt  # For Matplotlib visualizations
+import matplotlib as mpl
+from matplotlib import rc
 import seaborn as sns            # For Seaborn visualizations
 import plotly.express as px      # For interactive visualizations with Plotly
 # %matplotlib inline  # Uncomment for Jupyter notebooks to display plots inline
+
+# For the preparation of the overview report pdf 
+from reportlab.lib.pagesizes import A4
+from reportlab.pdfgen import canvas
+from PIL import Image
 
 
 # Path to the neighboring 'data' folder in the local repository
@@ -70,6 +77,27 @@ Most frequent outgoing target: {most_frequent_expense_target}
     return result
 
 
+def truncate_strings_in_dataframe(df, max_length=30):
+    """
+    Truncates all strings in a pandas DataFrame to a specified maximum length.
+
+    Parameters:
+    df (DataFrame): The pandas DataFrame to process.
+    max_length (int): The maximum length for strings.
+
+    Returns:
+    DataFrame: A new DataFrame with truncated strings.
+    """
+    # Create a copy of the DataFrame to avoid modifying the original
+    df_truncated = df
+    
+    # Apply truncation to all string entries
+    for col in df_truncated.select_dtypes(include=['object', 'string', 'string[python]']).columns:
+        df_truncated[col] = df_truncated[col].apply(lambda x: x[:max_length] if isinstance(x, str) else x)
+    
+    return df_truncated
+
+
 def analyze_by_category(df):
     """
     Groups and analyzes transactions by category.
@@ -81,7 +109,8 @@ def analyze_by_category(df):
     # Format the output as a string
     summary_str = "Total by Category:\n"
     summary_str += category_summary.to_string()
-    
+    summary_str += "\n \n"
+
     return summary_str
 
 def income_expense_trend(df, path):
@@ -121,15 +150,18 @@ def income_expense_trend(df, path):
 
 def average_monthly_stats(df):
     """
-    Calculates average monthly income and expenses.
+    Calculates the average monthly income and expenses and returns a summary string.
     """
     df['Buchungsdatum'] = pd.to_datetime(df['Buchungsdatum'], errors='coerce')
     df['month'] = df['Buchungsdatum'].dt.to_period('M')
     monthly_income = df[df['Betrag (€)'] > 0].groupby('month')['Betrag (€)'].sum().mean()
     monthly_expenses = df[df['Betrag (€)'] < 0].groupby('month')['Betrag (€)'].sum().mean()
     
-    print(f"Average Monthly Income: €{monthly_income:.2f}")
-    print(f"Average Monthly Expenses: €{monthly_expenses:.2f}")
+    result = (
+        f"Monthly income VS expanse: \n"
+        f"The average monthly income is €{monthly_income:.2f}, and the average monthly expenses are €{monthly_expenses:.2f}. \n \n"
+    )
+    return result
 
 def detect_recurring_transactions(df):
     """
@@ -139,7 +171,27 @@ def detect_recurring_transactions(df):
     recurring_summary = recurring.groupby(['Zahlungsempfänger*in', 'Betrag (€)']).size().reset_index(name='Count')
     recurring_summary = recurring_summary.sort_values(by='Count', ascending=False)
     
-    return recurring, recurring_summary
+    return recurring_summary
+
+def text_recurring_transactions(df):
+    """
+    Extracts the first 5 rows of a pandas DataFrame and formats it into a readable string.
+    
+    Parameters:
+    df (DataFrame): The pandas DataFrame to extract rows from.
+
+    Returns:
+    str: A formatted string of the first 5 rows.
+    """
+    # Extract the first 5 rows
+    first_five = df.head(5)
+    
+    # Convert the rows to a nicely formatted string
+    formatted_string = first_five.to_string(index=False, justify="left")
+    
+    # Add a title to the string
+    result = f"The 5 most recurring transactions:\n\n{formatted_string}"
+    return result    
 
 def plot_recurring_summary(recurring_summary, path):
     """
@@ -474,7 +526,7 @@ def plot_total_income_expenses(df, path):
     totals = {'Income': total_income, 'Expenses': abs(total_expenses)}  # Convert expenses to positive
 
     # Create a bar plot using Seaborn
-    plt.figure(figsize=(8, 5))  # Set figure size
+    plt.figure(figsize=(10, 4))  # Set figure size
     sns.barplot(x=list(totals.keys()), y=list(totals.values()), palette='muted')
 
     # Set the title and labels for the plot
@@ -524,46 +576,262 @@ def plot_monthly_savings(df, path):
 
     return path_saving
 
+def plot_expenses_barplot(df, path):
+    """
+    Creates a horizontal bar plot of total expenses by category with grid lines and axes.
+    
+    Parameters:
+        df (pd.DataFrame): DataFrame containing columns 'Umsatztyp', 'Category', and 'Betrag (€)'.
+        path (str): Directory path where the bar plot will be saved.
+    
+    Returns:
+        str: Path to the saved bar plot image.
+    """
+    # Filter for 'Ausgang' in 'Umsatztyp'
+    expenses_df = df[df['Umsatztyp'] == 'Ausgang']
+
+    # Aggregate data by Category
+    category_expenses = expenses_df.groupby('Category')['Betrag (€)'].sum().abs()
+
+    # Sort by total expenses
+    category_expenses = category_expenses.sort_values(ascending=True)
+
+    # Generate a color palette
+    colors = sns.color_palette("husl", len(category_expenses))
+
+    # Create the bar plot
+    fig, ax = plt.subplots(figsize=(10, 6))
+    bars = ax.barh(category_expenses.index, category_expenses.values, color=colors)
+
+    # Add labels to each bar
+    for bar, value in zip(bars, category_expenses.values):
+        ax.text(value, bar.get_y() + bar.get_height() / 2, f"{value:.2f} €", 
+                va='center', ha='left', fontsize=10)
+
+    # Set labels and title
+    ax.set_xlabel("Total Expenses (€)", fontsize=12)
+    ax.set_ylabel("Category", fontsize=12)
+    ax.set_title("Total Expenses by Category", fontsize=14)
+
+    # Add grid lines
+    ax.grid(axis='x', linestyle='--', alpha=0.7)
+
+    # Remove spines for cleaner look
+    sns.despine(left=True, bottom=False)
+
+    # Save the figure
+    function_name = inspect.currentframe().f_code.co_name
+    path_saving = os.path.join(path, f"{function_name}.png")
+    plt.savefig(path_saving, dpi=300, bbox_inches='tight')
+    plt.show()
+    plt.close(fig)  # Close the figure to release memory
+
+    return path_saving
+
+def plot_expenses_barplot_percent(df, path):
+    """
+    Creates a horizontal bar plot of total expenses by category in percentages with grid lines and axes.
+    
+    Parameters:
+        df (pd.DataFrame): DataFrame containing columns 'Umsatztyp', 'Category', and 'Betrag (€)'.
+        path (str): Directory path where the bar plot will be saved.
+    
+    Returns:
+        str: Path to the saved bar plot image.
+    """
+    # Filter for 'Ausgang' in 'Umsatztyp'
+    expenses_df = df[df['Umsatztyp'] == 'Ausgang']
+
+    # Aggregate data by Category
+    category_expenses = expenses_df.groupby('Category')['Betrag (€)'].sum().abs()
+
+    # Calculate percentages
+    total_expenses = category_expenses.sum()
+    category_expenses_percent = (category_expenses / total_expenses) * 100
+
+    # Sort by percentage
+    category_expenses_percent = category_expenses_percent.sort_values(ascending=True)
+
+    # Generate a color palette
+    colors = sns.color_palette("husl", len(category_expenses_percent))
+
+    # Create the bar plot
+    fig, ax = plt.subplots(figsize=(10, 6))
+    bars = ax.barh(category_expenses_percent.index, category_expenses_percent.values, color=colors)
+
+    # Add percentage labels to each bar
+    for bar, value in zip(bars, category_expenses_percent.values):
+        # Position the text slightly to the right of the bar
+        ax.text(
+            value + 0.5,  # Offset for visibility
+            bar.get_y() + bar.get_height() / 2, 
+            f"{value:.2f}\\%",  # Format as percentage with LaTeX-compatible percent symbol
+            va='center', 
+            ha='left', 
+            fontsize=10
+        )
+
+    # Set labels and title with LaTeX-compatible percent symbol
+    ax.set_xlabel("Total Expenses (\\%)", fontsize=12)
+    ax.set_ylabel("Category", fontsize=12)
+    ax.set_title("Total Expenses by Category (Percentage)", fontsize=14)
+
+    # Add grid lines
+    ax.grid(axis='x', linestyle='--', alpha=0.7)
+
+    # Remove spines for cleaner look
+    sns.despine(left=True, bottom=False)
+
+    # Save the figure
+    function_name = inspect.currentframe().f_code.co_name
+    path_saving = os.path.join(path, f"{function_name}.png")
+    plt.savefig(path_saving, dpi=300, bbox_inches='tight')
+    plt.show()
+    plt.close(fig)  # Close the figure to release memory
+
+    return path_saving
+
+
+
+def plot_expenses_violin(df, path):
+    """
+    Creates a violin plot of expense distributions by category with positive values and a legend below.
+    
+    Parameters:
+        df (pd.DataFrame): DataFrame containing columns 'Umsatztyp', 'Category', and 'Betrag (€)'.
+        path (str): Directory path where the violin plot will be saved.
+    
+    Returns:
+        str: Path to the saved violin plot image.
+    """
+    # Filter for 'Ausgang' in 'Umsatztyp'
+    expenses_df = df[df['Umsatztyp'] == 'Ausgang'].copy()
+
+    # Convert amounts to absolute values
+    expenses_df['Betrag (€)'] = expenses_df['Betrag (€)'].abs()
+
+    # Create the violin plot
+    fig, ax = plt.subplots(figsize=(12, 6))
+    palette = sns.color_palette("husl", n_colors=expenses_df['Category'].nunique())
+    sns.violinplot(
+        data=expenses_df, 
+        x='Category', 
+        y='Betrag (€)', 
+        scale='width', 
+        inner='quartile', 
+        linewidth=1, 
+        palette=palette, 
+        ax=ax
+    )
+
+    # Remove X-axis labels
+    ax.set_xticklabels([])
+    ax.set_xlabel("")
+    ax.set_title("Distribution of Expenses by Category", fontsize=14)
+    ax.set_ylabel("Expense Amount (€)", fontsize=12)
+    ax.grid(axis='y', linestyle='--', alpha=0.7)
+
+    # Create legend below the plot
+    handles = [plt.Line2D([0], [0], color=color, lw=10) for color in palette]
+    categories = expenses_df['Category'].unique()
+    legend = ax.legend(
+        handles, 
+        categories, 
+        title="Categories", 
+        loc='upper center', 
+        bbox_to_anchor=(0.5, -0.15), 
+        ncol=4, 
+        fontsize=10, 
+        title_fontsize=12
+    )
+
+    # Save the figure
+    function_name = inspect.currentframe().f_code.co_name
+    path_saving = os.path.join(path, f"{function_name}.png")
+    plt.savefig(path_saving, dpi=300, bbox_inches='tight')
+    plt.show()
+    plt.close(fig)  # Close the figure to release memory
+
+    return path_saving
+
 def plot_largest_expenses_income(df, path):
     """
-    Plots the top 5 sources of income and the top 5 expenses in pie charts.
+    Plots the top 5 sources of income and the top 5 expenses in pie charts with connection pointer lines
+    and percentages inside the pie pieces.
     
     Parameters:
     df (DataFrame): The DataFrame containing financial data with 'Betrag (€)', 'Zahlungspflichtige*r', and 'Zahlungsempfänger*in' columns.
+    path (str): The directory where the plot will be saved.
+    
+    Returns:
+    str: Path to the saved figure.
     """
+    # Use LaTeX styling and font for the plots
+    plt.rcParams.update(plt.rcParamsDefault)
+    mpl.rcParams['text.usetex'] = True
+    rc('font', **{'family': 'serif', 'serif': ['Computer Modern']})
+    rc('text', usetex=True)
+
     # Get the function name dynamically
     function_name = inspect.currentframe().f_code.co_name
-    
-    # Construct the path to save the figure with the function name
+
+    # Construct the path for saving the plot
     path_saving = os.path.join(path, f'{function_name}.png')
-    # Top 5 sources of income
+
+    # Calculate the top 5 sources of income
     top_income = df[df['Betrag (€)'] > 0].groupby('Zahlungspflichtige*r')['Betrag (€)'].sum().nlargest(5)
-    
-    # Top 5 expenses (convert to positive values for plotting)
-    top_expenses = df[df['Betrag (€)'] < 0].groupby('Zahlungsempfänger*in')['Betrag (€)'].sum().nsmallest(5)
-    top_expenses = top_expenses.abs()  # Convert expenses to positive values
 
-    # Plot top 5 income sources
-    plt.figure(figsize=(12, 6))  # Set figure size
-    
-    # Subplot for income
-    plt.subplot(1, 2, 1)
-    top_income.plot(kind='pie', autopct='%1.1f%%', startangle=90, colormap='Blues')
-    plt.title("Top 5 Income Sources")
-    plt.ylabel('')  # Hide the y-label for pie chart
+    # Calculate the top 5 sources of expenses (converted to positive values)
+    top_expenses = df[df['Betrag (€)'] < 0].groupby('Zahlungsempfänger*in')['Betrag (€)'].sum().nsmallest(5).abs()
 
-    # Subplot for expenses
-    plt.subplot(1, 2, 2)
-    top_expenses.plot(kind='pie', autopct='%1.1f%%', startangle=90, colormap='Reds')
-    plt.title("Top 5 Expenses")
-    plt.ylabel('')  # Hide the y-label for pie chart
-    
-    plt.tight_layout()  # Adjust layout to prevent overlapping
-    plt.savefig(path_saving)  # Save figure
+    # Create the figure and subplots
+    fig, axes = plt.subplots(1, 2, figsize=(14, 8))
+
+    # Generate custom colors for income (blue to white) and expenses (red to white)
+    income_colors = plt.cm.Blues(np.linspace(0.1, 0.9, len(top_income)))
+    expense_colors = plt.cm.Reds(np.linspace(0.1, 0.9, len(top_expenses)))
+
+    # Plot the top 5 sources of income as a pie chart
+    income_pie = axes[0].pie(
+        top_income, 
+        autopct='%.1f%%', 
+        colors=income_colors,  # Use blue to white color map
+        wedgeprops={"linewidth": 2.0, "edgecolor": "white"}, 
+        textprops={'size': 'xx-large'}
+    )
+    axes[0].set_title("Top 5 Income Sources", fontsize=16)
+
+    # Plot the top 5 sources of expenses as a pie chart
+    expense_pie = axes[1].pie(
+        top_expenses, 
+        autopct='%.1f%%', 
+        colors=expense_colors,  # Use red to white color map
+        wedgeprops={"linewidth": 2.0, "edgecolor": "white"}, 
+        textprops={'size': 'xx-large'}
+    )
+    axes[1].set_title("Top 5 Expenses", fontsize=16)
+
+    # Add legends below the plots
+    fig.legend(
+        labels=list(top_income.index) + list(top_expenses.index),
+        loc='lower center', 
+        fontsize='large', 
+        ncol=2,
+        frameon=False
+    )
+
+    # Adjust layout to make space for the legends
+    plt.subplots_adjust(bottom=0.2)
+
+    # Save the plot to the specified path
+    plt.savefig(path_saving, dpi=300, bbox_inches='tight')
     plt.show()
 
     return path_saving
 
+
+
+    
 def plot_transaction_distribution(df, path):
     """
     Plots the distribution of transaction amounts using a histogram.
@@ -582,7 +850,7 @@ def plot_transaction_distribution(df, path):
     # Construct the path to save the figure with the function name
     path_saving = os.path.join(path, f'{function_name}.png')
 
-    plt.figure(figsize=(20, 4)) 
+    plt.figure(figsize=(10, 4)) 
 
     # Create the histogram with a KDE line
     sns.histplot(df['Betrag (€)'], kde=True)
@@ -591,6 +859,9 @@ def plot_transaction_distribution(df, path):
     plt.title("Distribution of Transaction Amounts")
     plt.xlabel("Amount (€)")
     plt.ylabel("Frequency (Log Scale)")
+    # Set the y-axis to logarithmic scale, starting from 1
+    #plt.yscale('log')
+    #plt.ylim(bottom=0.1)  # Ensure the lower limit of the y-axis starts at 1
 
     # Show and save the plot
     plt.savefig(path_saving)  # Save figure
@@ -644,5 +915,69 @@ def plot_monthly_income_vs_expenses(df, path):
 
     return path_saving
 
+def save_to_pdf(text_functions, plot_functions, output_pdf_path):
+    """
+    This function will generate a overview pdf. It ta
+    
+    Parameters:
+    text_functions: All functions which generate an text output as analyse of the df finances. 
+    plot_funcitons: All functions which generate an png plot. 
+    output_pdf_path: Where the pdf should be saved. 
+    """
+    
+    # Create the PDF document
+    c = canvas.Canvas(output_pdf_path, pagesize=A4)
+    width, height = A4
+    current_y = height - 40  # Starting point on the Y-axis (40 pt margin from the top)
+
+    # Add the header
+    c.setFont("Helvetica-Bold", 14)
+    c.drawString(200, current_y, "Financial Report")
+    current_y -= 20  # Leave space after the header
+
+    # Add text content
+    c.setFont("Helvetica", 12)
+    for text_function in text_functions:
+        output = text_function()  # Generate text content
+        text_lines = output.split('\n')  # Handle line breaks
+        for line in text_lines:
+            c.drawString(40, current_y, line)  # Draw each line of text
+            current_y -= 15  # Decrease the Y-position for the next line
+            if current_y < 40:  # Check if the page is full
+                c.showPage()  # Add a new page
+                current_y = height - 40  # Reset the Y-position
+
+    # Add plots (images)
+    for plot_function in plot_functions:
+        plot_path = plot_function()  # Generate the plot and get its file path
+
+        # Load the image and get its dimensions
+        img = Image.open(plot_path)
+        img_width, img_height = img.size
+
+        # Calculate the scaled size of the image
+        max_width = width - 80  # Allow for 40 pt margin on left/right
+        max_height = height - 80  # Allow for 40 pt margin on top/bottom
+        ratio = min(max_width / img_width, max_height / img_height)
+        img_width = int(img_width * ratio)
+        img_height = int(img_height * ratio)
+
+        # If there isn't enough space for the image, add a new page
+        if current_y - img_height < 40:
+            c.showPage()  # Add a new page
+            current_y = height - 40  # Reset the Y-position
+
+        # Draw the image
+        c.drawImage(plot_path, 40, current_y - img_height, width=img_width, height=img_height)
+        current_y -= img_height + 20  # Adjust Y-position after the image
+
+        # If the page becomes full, add a new page
+        if current_y < 40:
+            c.showPage()
+            current_y = height - 40
+
+    # Save the PDF
+    c.save()
+    print(f"PDF saved to {output_pdf_path}")
 
 
