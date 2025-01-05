@@ -116,29 +116,30 @@ This allows you to run the entire script in one go, generating all the required 
 
 ==============================
 
-## 6. Kategorisierung: 
+## 6. Categorization: 
 
-die verwendeten categorien sind: 
-1. Housing
-Rent or mortgage payments, property taxes, HOA fees, home maintenance costs
-2. Transportation
-Car payments, registration and DMV fees, gas, maintenance, parking and tolls, public transit or ridesharing costs
-3. Food
-Groceries, restaurant meals, work lunches, food delivery
-4. Utilities
-Gas, electricity, water, sewage bills, internet and cell phone services
-5. Insurance
-Health insurance, homeowner's or renter's insurance, auto insurance, life insurance, disability insurance
-6. Medical & Healthcare
-Out-of-pocket costs for primary care, specialty care, dental care, urgent care, prescriptions and OTC medications, supplements and medical devices
-7. Saving, Investing, & Debt Payments
-Debt repayment (credit cards, loans), emergency fund, retirement savings (401(k), IRA)
-8. Personal Spending
-Gym memberships, clothes and shoes, haircuts and personal care, home decor and furniture, gifts
-9. Recreation & Entertainment
-Concert tickets, sporting events, family activities and vacations, streaming services and subscriptions, restaurants (if not included in Food), hobbies
-10. Miscellaneous
-Overflow category for unexpected expenses, additional spending in other categories when needed
+The categories used are:  
+1. **Housing**  
+   Rent or mortgage payments, property taxes, HOA fees, home maintenance costs  
+2. **Transportation**  
+   Car payments, registration and DMV fees, gas, maintenance, parking and tolls, public transit or ridesharing costs  
+3. **Food**  
+   Groceries, restaurant meals, work lunches, food delivery  
+4. **Utilities**  
+   Gas, electricity, water, sewage bills, internet and cell phone services  
+5. **Insurance**  
+   Health insurance, homeowner's or renter's insurance, auto insurance, life insurance, disability insurance  
+6. **Medical & Healthcare**  
+   Out-of-pocket costs for primary care, specialty care, dental care, urgent care, prescriptions and OTC medications, supplements and medical devices  
+7. **Saving, Investing, & Debt Payments**  
+   Debt repayment (credit cards, loans), emergency fund, retirement savings (401(k), IRA)  
+8. **Personal Spending**  
+   Gym memberships, clothes and shoes, haircuts and personal care, home decor and furniture, gifts  
+9. **Recreation & Entertainment**  
+   Concert tickets, sporting events, family activities and vacations, streaming services and subscriptions, restaurants (if not included in Food), hobbies  
+10. **Miscellaneous**  
+    Overflow category for unexpected expenses, additional spending in other categories when needed  
+
 
 ==============================
 
