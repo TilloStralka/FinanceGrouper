@@ -216,33 +216,57 @@ def plot_recurring_summary(recurring_summary, path):
     
 def expense_income_ratio(df):
     """
-    Calculates the expense-to-income ratio per month.
+    Calculates the expense-to-income ratio per month and returns it as a string.
     """
+    # Extract the month from 'Buchungsdatum'
     df['month'] = df['Buchungsdatum'].dt.to_period('M')
+    
+    # Calculate monthly income and expenses
     income = df[df['Betrag (€)'] > 0].groupby('month')['Betrag (€)'].sum()
     expenses = df[df['Betrag (€)'] < 0].groupby('month')['Betrag (€)'].sum().abs()
+    
+    # Calculate the expense-to-income ratio
     ratio = (expenses / income).fillna(0)
-    print("\nExpense to Income Ratio per Month:")
-    print(ratio)
+    
+    # Prepare the output string
+    ratio_string = "\nExpense to Income Ratio per Month:\n" + ratio.to_string()
+    
+    # Print the ratio string
+    #print(ratio_string)
+    
+    # Return the string representation
+    return ratio_string
 
 def expenses_by_recipient(df):
     """
-    Provides a breakdown of expenses by recipient.
+    Provides a breakdown of expenses by recipient and returns it as a string.
     """
     expense_summary = df[df['Betrag (€)'] < 0].groupby('Zahlungsempfänger*in')['Betrag (€)'].sum()
-    print("\nExpenses by Recipient:")
-    print(expense_summary.sort_values())
+    sorted_expense_summary = expense_summary.sort_values()
+    
+    output = "\nExpenses by Recipient:\n"
+    output += sorted_expense_summary.to_string()
+    
+    print(output)  
+    return output
 
 def detect_outliers(df, threshold=3):
     """
-    Identifies unusual transactions using standard deviation.
+    Identifies unusual transactions using standard deviation and returns the result as a string.
     """
     mean = df['Betrag (€)'].mean()
     std_dev = df['Betrag (€)'].std()
     outliers = df[(df['Betrag (€)'] < (mean - threshold * std_dev)) | 
                   (df['Betrag (€)'] > (mean + threshold * std_dev))]
-    print("\nOutliers:")
-    print(outliers[['Buchungsdatum', 'Betrag (€)', 'Verwendungszweck']])
+    
+    output = "\nOutliers:\n"
+    if not outliers.empty:
+        output += outliers[['Buchungsdatum', 'Betrag (€)', 'Verwendungszweck']].to_string(index=False)
+    else:
+        output += "No outliers detected."
+    
+    print(output)  # Optional: Drucken der Ergebnisse
+    return output
 
 def savings_percentage(df, path):
     """
@@ -692,6 +716,45 @@ def plot_expenses_barplot_percent(df, path):
     return path_saving
 
 
+def translate_text(text):
+    """
+    Translates the input text into a specified target language using the translator object.
+
+    Parameters:
+        text (str): The text to be translated.
+
+    Returns:
+        str: Translated text if successful, or an error message if the translation fails.
+    """
+    try:
+        # Attempt to translate the text using the translator object
+        return translator.translate(text)
+    except Exception as e:
+        # If an error occurs, return the error message
+        return f"Error during translation: {e}"
+
+
+def determine_final_category(row):
+    """
+    Determines the final category for a given row based on a priority rule.
+
+    The function selects the first non-'Miscellaneous' category from the columns 
+    'Category1', 'Category2', 'Category3', and 'Category4'. If all categories 
+    are 'Miscellaneous', it defaults to 'Miscellaneous'.
+
+    Parameters:
+        row (pd.Series): A row from a DataFrame containing the category columns.
+
+    Returns:
+        str: The determined final category.
+    """
+    # Apply the priority rule: choose the first non-'Miscellaneous' category
+    for category in [row['Category1'], row['Category2'], row['Category3'], row['Category4']]:
+        if category != 'Miscellaneous':
+            return category
+    # Fallback to 'Miscellaneous' if all categories are 'Miscellaneous'
+    return 'Miscellaneous'
+
 
 def plot_expenses_violin(df, path):
     """
@@ -858,7 +921,7 @@ def plot_transaction_distribution(df, path):
     # Set the title and labels
     plt.title("Distribution of Transaction Amounts")
     plt.xlabel("Amount (€)")
-    plt.ylabel("Frequency (Log Scale)")
+    plt.ylabel("Frequency")
     # Set the y-axis to logarithmic scale, starting from 1
     #plt.yscale('log')
     #plt.ylim(bottom=0.1)  # Ensure the lower limit of the y-axis starts at 1
@@ -901,7 +964,7 @@ def plot_monthly_income_vs_expenses(df, path):
     # Plotting with Matplotlib
     fig, ax = plt.subplots(figsize=(10, 6))
     
-    monthly_data.plot(kind='bar', stacked=True, ax=ax, color=['#2ca02c', '#d62728'])  # Colors for Income/Expenses
+    monthly_data.plot(kind='bar', stacked=True, ax=ax, color=['#d62728', '#1f77b4'])  # Colors for Income/Expenses
     ax.set_title('Monthly Income vs Expenses')
     ax.set_xlabel('Month')
     ax.set_ylabel('Amount (€)')
@@ -917,67 +980,280 @@ def plot_monthly_income_vs_expenses(df, path):
 
 def save_to_pdf(text_functions, plot_functions, output_pdf_path):
     """
-    This function will generate a overview pdf. It ta
-    
+    Generates an overview PDF with text outputs and plots.
+
     Parameters:
-    text_functions: All functions which generate an text output as analyse of the df finances. 
-    plot_funcitons: All functions which generate an png plot. 
-    output_pdf_path: Where the pdf should be saved. 
+    text_functions: List of tuples (heading, function) generating text output.
+    plot_functions: List of tuples (heading, function) generating plots saved as images.
+    output_pdf_path: Path where the PDF should be saved.
     """
-    
     # Create the PDF document
     c = canvas.Canvas(output_pdf_path, pagesize=A4)
     width, height = A4
     current_y = height - 40  # Starting point on the Y-axis (40 pt margin from the top)
 
-    # Add the header
-    c.setFont("Helvetica-Bold", 14)
-    c.drawString(200, current_y, "Financial Report")
-    current_y -= 20  # Leave space after the header
-
-    # Add text content
-    c.setFont("Helvetica", 12)
-    for text_function in text_functions:
-        output = text_function()  # Generate text content
-        text_lines = output.split('\n')  # Handle line breaks
-        for line in text_lines:
-            c.drawString(40, current_y, line)  # Draw each line of text
-            current_y -= 15  # Decrease the Y-position for the next line
-            if current_y < 40:  # Check if the page is full
-                c.showPage()  # Add a new page
-                current_y = height - 40  # Reset the Y-position
-
-    # Add plots (images)
-    for plot_function in plot_functions:
-        plot_path = plot_function()  # Generate the plot and get its file path
-
-        # Load the image and get its dimensions
-        img = Image.open(plot_path)
-        img_width, img_height = img.size
-
-        # Calculate the scaled size of the image
-        max_width = width - 80  # Allow for 40 pt margin on left/right
-        max_height = height - 80  # Allow for 40 pt margin on top/bottom
-        ratio = min(max_width / img_width, max_height / img_height)
-        img_width = int(img_width * ratio)
-        img_height = int(img_height * ratio)
-
-        # If there isn't enough space for the image, add a new page
-        if current_y - img_height < 40:
+    def check_space(required_space):
+        """
+        Checks if there is enough space for the next section.
+        If not, it adds a new page and resets the Y-position.
+        """
+        nonlocal current_y
+        if current_y - required_space < 40:  # Check if enough space remains
             c.showPage()  # Add a new page
             current_y = height - 40  # Reset the Y-position
 
-        # Draw the image
-        c.drawImage(plot_path, 40, current_y - img_height, width=img_width, height=img_height)
-        current_y -= img_height + 20  # Adjust Y-position after the image
+    # Add the header
+    c.setFont("Helvetica-Bold", 14)
+    c.drawString(200, current_y, "Financial Report")
+    current_y -= 40  # Leave space after the header
 
-        # If the page becomes full, add a new page
-        if current_y < 40:
-            c.showPage()
-            current_y = height - 40
+    # Add text content with headings
+    c.setFont("Helvetica", 12)
+
+    # Interleave the text and plot functions in the specified order
+    combined_functions = []
+    max_len = max(len(text_functions), len(plot_functions))
+
+    # Append text and plot functions in the order you define them
+    for i in range(max_len):
+        if i < len(plot_functions):
+            combined_functions.append(('plot', plot_functions[i]))        
+        if i < len(text_functions):
+            combined_functions.append(('text', text_functions[i]))
+
+    # Process the combined list, alternating between text and plots
+    for func_type, (heading, func) in combined_functions:
+        if func_type == 'text':
+            # Estimate required space for heading and some lines of text
+            estimated_lines = 10  # Adjust this number based on expected text length
+            required_space = 20 + (estimated_lines * 15)
+            check_space(required_space)
+
+            # Add the heading
+            c.setFont("Helvetica-Bold", 12)
+            c.drawString(40, current_y, heading)
+            current_y -= 20  # Adjust Y-position after the heading
+
+            # Generate the text content
+            c.setFont("Helvetica", 10)
+            output = func()  # Run the text function
+            text_lines = output.split('\n')  # Handle line breaks
+            for line in text_lines:
+                c.drawString(40, current_y, line)  # Draw each line of text
+                current_y -= 15  # Decrease the Y-position for the next line
+                check_space(15)  # Ensure enough space for the next line
+
+        elif func_type == 'plot':
+            # Generate the plot and get its file path
+            plot_path = func()  # Run the plot function and get the plot path
+
+            # Load the image and get its dimensions
+            img = Image.open(plot_path)
+            img_width, img_height = img.size
+
+            # Calculate the scaled size of the image
+            max_width = width - 80  # Allow for 40 pt margin on left/right
+            max_height = height - 80  # Allow for 40 pt margin on top/bottom
+            ratio = min(max_width / img_width, max_height / img_height)
+            img_width = int(img_width * ratio)
+            img_height = int(img_height * ratio)
+
+            # Estimate required space for heading and image
+            required_space = 20 + img_height + 20  # Heading + Image + Padding
+            check_space(required_space)
+
+            # Add the heading
+            c.setFont("Helvetica-Bold", 12)
+            c.drawString(40, current_y, heading)
+            current_y -= 20  # Adjust Y-position after the heading
+
+            # Draw the image
+            c.drawImage(plot_path, 40, current_y - img_height, width=img_width, height=img_height)
+            current_y -= img_height + 20  # Adjust Y-position after the image
 
     # Save the PDF
     c.save()
     print(f"PDF saved to {output_pdf_path}")
+    
 
-
+# Define categories with corresponding key words for the bert categorizer 
+categories = {
+"Housing": [
+    "rent", "miete", "monthly rent", "rental payment", "apartment rent", "flat rent", 
+    "mortgage", "property taxes", "real estate tax", "home maintenance", "homeowners insurance", 
+    "hoa fees", "house insurance", "apartment insurance", "property management", "landlord", 
+    "vermieter", "tenant", "mieter", "rental contract", "lease", "lease agreement", 
+    "rental deposit", "security deposit", "property maintenance", "repair costs", "apartment repair", 
+    "utility costs", "Nebenkosten", "heating cost", "heating bill", "water bill", "electricity bill", 
+    "internet bill", "trash collection fee", "building maintenance fee", "common area maintenance", 
+    "garbage disposal", "parking fees", "garage rent", "storage unit rent", "property rental", 
+    "vacation rental", "rental property", "property rental fee", "apartment complex", "real estate", 
+    "real estate agent", "property buying", "house buying", "property selling", "house selling", 
+    "real estate tax", "mortgage interest", "down payment", "home equity loan", "home loan", 
+    "mortgage loan", "refinancing", "home appraisal", "moving costs", "moving truck", "moving company", 
+    "storage fees", "rental property tax", "rent increase", "rent reduction", "rental income"
+],
+"Transportation": [
+    "car payment", "gas", "public transit", "ridesharing", "parking", "tolls",
+    "vehicle maintenance", "fuel", "auto repair", "commuting", "bike rental",
+    "FERNVERKEHR", "flixbus", "PAYPAL .DBVERTR", "DB", "Flight", "Airport", 
+    "Travel", "Reise", "taxi", "ride sharing", "Uber", "Lyft", "BlaBlaCar", "carpooling", 
+    "bus", "train", "subway", "metro", "tram", "bike", "e-scooter", "e-bike", "train ticket",
+    "flight ticket", "plane ticket", "airline", "lufthansa", "ryanair", "easyjet", "airfrance", 
+    "kLM", "turkish airlines", "british airways", "emirates", "qatar airways", "saa", 
+    "condor", "australian airlines", "jetstar", "wizz air", "air berlin", "airport shuttle", 
+    "airport transfer", "rental car", "car hire", "travel insurance", "holiday travel", 
+    "turbulence", "seat reservation", "boarding pass", "baggage fee", "excess baggage", 
+    "flight change fee", "train station", "bus station", "taxi fare", "ride fee", 
+    "petrol station", "fuel station", "gas station", "charge station", "charging station", 
+    "auto club", "parking meter", "toll road", "vehicle registration", "road toll", "highway toll", 
+    "road trip", "long distance travel", "holiday flight", "business class", "economy class",
+    "first class", "airport lounge", "train reservation", "train travel", "train ride", 
+    "flight booking", "international travel", "domestic flight", "train journey", "airport taxes",
+    "boarding gate", "carry-on baggage", "checked luggage", "travel booking", "trip", "City Flitzer", "Mietwagen", "Teilauto"
+],
+"Eat Out or Get Food": [
+    "groceries", "restaurant", "delivery", "lunch", "dining out", "snacks",
+    "coffee shop", "takeout", "meal kit", "gastro", "dean david", "cafe",
+    "baeckerei", "coffee fellows", "jim block", "don qui", "Osteria", "subway",
+    "backhaus", "burger king", "campus suite", "juice.more", "Backerei",
+    "Avni Terhani", "vegan", "thai", "indisch", "cusine", "bäcker", "baecker"
+    ],
+"Cash": [
+    "bargeld", "automat", "cash", "ATM", "eurocash", "withdrawal", "cash withdrawal",
+    "sparkasse", "bankautomat", "geldautomat", "bareinzahlung", "auszahlung", 
+    "cashpoint", "bank cash", "barzahlung", "ATM withdrawal", "bank withdrawal",
+    "Bargeldabhebung", "Barabhebung", "Transact", "Straße"
+],
+"Supermarket and Drogerie": [
+    "karstadt", "galeria", "kaufhof", "mueller", "migros", "coop", "dm fil", 
+    "rossmann", "go asia", "Drogerie", "SUCKFUELL", "butlers", "Suckfull", 
+    "Bio-Market", "conrad m", "lidl", "aldi", "aldi süd", "aldi nord", "edeka", 
+    "edeka center", "alnatura", "rewe", "rewe city", "vollcorner", "konsum", 
+    "penny", "netto", "netto city", "kaufland", "real", "marktkauf", "hit", 
+    "tegut", "spar", "eurospar", "interspar", "denn's biomarkt", "biomarkt", 
+    "basic", "metro", "famila", "globus", "toom", "norma", "baekcer", "bäcker", "bakery"
+],
+"Utilities": [
+    "electricity", "strom", "power", "energie", "energy", 
+    "internet", "wifi", "dsl", "breitband", "broadband", 
+    "water", "wasser", "wasserversorgung", "water supply", 
+    "cell phone", "mobilfunk", "handyvertrag", "cellular", 
+    "mobile plan", "mobile service", "gas utility", "gas", 
+    "heating", "heizung", "heizkosten", "cable", "kabel", 
+    "kabelanschluss", "cable connection", "sewer", "abwasser", 
+    "kanalisation", "sewage", "trash collection", "müllabfuhr", 
+    "waste disposal", "recycling service", "müllentsorgung", 
+    "garbage collection", "netzbetreiber", "local network provider", 
+    "stromanbieter", "energieversorger", "electricity provider", 
+    "gas provider", "wasserwerk", "waterworks", "energie werk", 
+    "power plant", "smartphone bill", "phone bill", "utility fees", 
+    "Nebenkosten", "maintenance fees", "local utility provider"
+],
+"Insurance": [
+    "health insurance", "krankenversicherung", "tkk", "techniker krankenkasse", 
+    "aok", "barmer", "dak", "bkk", "krankenkasse", "auto insurance", 
+    "kfz-versicherung", "autoversicherung", "life insurance", 
+    "lebensversicherung", "homeowners insurance", "hausratversicherung", 
+    "gebäudeversicherung", "disability insurance", "berufsunfähigkeitsversicherung", 
+    "invaliditätsversicherung", "pet insurance", "haustierversicherung", 
+    "travel insurance", "reiseversicherung", "auslandsversicherung", 
+    "renter's insurance", "mieterversicherung", "haftpflichtversicherung", 
+    "liability insurance", "unfallversicherung", "dental insurance", 
+    "zahnzusatzversicherung", "zahnversicherung", "supplemental insurance", 
+    "zusatzversicherung", "private insurance", "private krankenversicherung", 
+    "pension insurance", "rentenversicherung", "healthcare plan", 
+    "versicherung", "insurance premium", "insurance fee", "premium", 
+    "versicherungskosten", "policy", "versicherungsvertrag", 
+    "deductible", "selbstbeteiligung", "versicherungsschutz", 
+    "risk coverage", "deckungsumfang", "versicherungstarif"
+],
+"Medical and Healthcare": [
+    "prescription", "rezept", "urgent care", "notaufnahme", "notfallmedizin", 
+    "dental", "zahnarzt", "zahnmedizin", "dental care", "zahnpflege", 
+    "medical device", "medizinisches gerät", "therapie", "physiotherapie", 
+    "therapy", "psychotherapie", "chiropractor", "chiropraktiker", 
+    "eye care", "augenarzt", "vision", "sehhilfe", "optiker", "brille", 
+    "surgery", "operation", "chirurgie", "mental health", "psychische gesundheit", 
+    "mental wellbeing", "psychiatrie", "psychologe", "psychotherapie", 
+    "check-up", "vorsorgeuntersuchung", "gesundheitscheck", 
+    "pharmacy", "apotheke", "online apotheke", "shop apotheke", 
+    "medikamente", "medications", "dolodobendan", "ibuprofen", "aspirin", 
+    "paracetamol", "schmerzmittel", "antibiotika", "antidepressiva", 
+    "krankenversicherung", "krankenhaus", "clinic", "klinik", "arzt", 
+    "ärztlicher dienst", "hospital", "healthcare", "gesundheitsversorgung", 
+    "krankenpflege", "nursing", "rehabilitation", "rehabilitation center", 
+    "impfung", "vaccination", "health screening", "diagnose", "labor", 
+    "blood test", "bluttest", "ct scan", "mrt", "ultraschall", 
+    "pregnancy test", "schwangerschaftstest", "medizin", "homöopathie", 
+    "alternative medizin", "orthopädie", "dermatologie", "diabetes", 
+    "arztpraxis", "arztbesuch", "sprechstunde", "arzttermin", 
+    "apotheken umschau", "medizinische hilfsmittel", "krankenbett", 
+    "erste hilfe", "first aid", "gesundheitsamt", "health authority"
+],
+"Saving, Investing and Debt Payments": [
+    "debt repayment", "loan repayment", "debt", "schulden", "credit card debt", 
+    "credit card payment", "schuldenabbau", "retirement", "pension", "rentenversicherung", 
+    "investment", "investment fund", "investment strategy", "investieren", "investment portfolio", 
+    "mutual fund", "aktienfonds", "investmentfonds", "stock", "aktie", "shares", "dividende", 
+    "stock market", "boerse", "aktienmarkt", "etf", "exchange traded fund", "kryptowährung", 
+    "cryptocurrency", "bitcoin", "ethereum", "blockchain", "crypto trading", "crypto investment", 
+    "sparplan", "savings plan", "capital investment", "portfolio", "asset management", 
+    "loan payment", "kreditrate", "credit payment", "student loan", "studentenloan", 
+    "IRA", "401(k)", "pension plan", "pensionsfonds", "retirement savings", "anlageberatung", 
+    "broker", "brokerage account", "online broker", "trade", "trading", "day trading", 
+    "stock trading", "robo-advisor", "trade republic", "depot", "brokerage fees", "robo-trading", 
+    "forex trading", "foreign exchange", "crypto exchange", "bitcoin exchange", "commodity trading", 
+    "real estate investment", "immobilieninvestition", "crowdinvesting", "crowdfunding", 
+    "savings account", "bank savings", "banksparplan", "savings bond", "money market", "investment savings"
+],
+"Personal Spending": [
+    "gym", "fitness studio", "fitness center", "workout", "training", "sports", "yoga", 
+    "climbing", "klettern", "bouldern", "kletterhalle", "bloc no limit", "berta block", 
+    "swimming pool", "schwimmhalle", "swimming", "aquatic center", "spa", "sauna", "massage", 
+    "clothes", "fashion", "shopping", "shoes", "clothing store", "apparel", "haircut", "barber", 
+    "beauty salon", "home decor", "furniture", "interior design", "makeup", "cosmetics", "nail care", 
+    "subscriptions", "streaming", "music subscription", "magazine subscription", "membership", 
+    "gym membership", "club membership", "electronics", "gadgets", "tech", "fitness equipment", 
+    "personal care", "toiletries", "skincare", "hair care", "personal hygiene", "travel bag", 
+    "sportswear", "activewear", "athletic shoes", "outdoor gear", "mountain biking", "snowboarding", 
+    "hiking", "running", "bicycle accessories", "fitness tracker", "wearable tech", "smartwatch", 
+    "sports accessories", "personal trainer", "group fitness class", "fitness retreat", 
+    "outdoor activities", "fitness nutrition", "protein shakes", "sports drink", "running shoes"
+],
+"Online Shopping": [
+    "otto", "conrad elec", "amzn mktp", "amzn", "amazon", "ebay", "aliexpress", "wish", "etsy",
+    "zalando", "shein", "boohoo", "asos", "myntra", "puma", "nike", "adidas", "decathlon", 
+    "media markt", "saturn", "real", "lidl online", "rewe online", "dm online", "kaufland online",
+    "ikea", "home24", "wayfair", "lulus", "target", "walmart", "costco", "home depot", "sears",
+    "best buy", "john lewis", "marks and spencer", "hm", "mango", "pull&bear", "stradivarius", 
+    "urban outfitters", "forever 21", "topshop", "uniqlo", "bose", "apple", "samsung", "xiaomi", 
+    "huawei", "sony", "lg", "belk", "braintree", "shopify", "shopbop", "farfetch", "newegg", 
+    "overstock", "jdsports", "finishline", "amazon prime", "alibaba", "mercado libre", "rakuten", 
+    "lazada", "carrefour", "tokopedia", "snapdeal", "flipkart", "jd.com", "cdiscount", "auchan", 
+    "groupon", "vinted", "poshmark", "bonprix", "trendyol", "lazada", "shopdirect", "thehut"
+],
+"Recreation, Entertainment, Vacation and Travels": [
+    "concert", "vacation", "hobby", "streaming", "movies", "video games", "theme park", 
+    "sports event", "museum", "entertainment subscription", "leisure", "magellan", 
+    "Amazon Prime", "paypal .steam", "netflix", "cinema", "theater", "movie theater", 
+    "film", "blockbuster", "premiere", "IMAX", "film festival", "opera", "ballet", 
+    "comedy show", "stand-up comedy", "circus", "night club", "music festival", 
+    "gaming console", "xbox", "playstation", "nintendo", "pc gaming", "board games", 
+    "vr gaming", "escape room", "arcade", "e-sports", "fantasy sports", "sporting event", 
+    "swimming pool", "skiing", "hiking", "rock climbing", "klettern", "fishing", "bowling", 
+    "karaoke", "live show", "bingo", "poker", "casino", "roulette", "lottery", "ticketmaster", 
+    "bowl", "tripadvisor", "spotify", "pandora", "hulu", "disney+", "apple tv", "hbo max", 
+    "youtube premium", "twitch", "tiktok", "vlog", "podcast", "radio", "musical", "zoo", 
+    "aquarium", "amusement park", "roller coaster", "skydiving", "paragliding", "fishing", 
+    "travel blog", "adventure park", "outdoor adventure", "live music", "pop concert", 
+    "classical concert", "live theater", "art gallery", "antique show", "cultural event", 
+    "family fun", "kids' event", "childrens' activity", "boardwalk", "water park", "circus", 
+    "golf", "mini golf", "bungee jumping", "yoga retreat", "meditation retreat", "Fremdwährung", 
+    "Boulderhalle"
+],
+    "Miscellaneous": [
+        "unexpected", "miscellaneous", "other", "donation", "charity", "gift",
+        "cash withdrawal", "uncategorized", "random", "small purchase"
+    ],
+}

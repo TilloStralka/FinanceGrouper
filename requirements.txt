@@ -12,7 +12,7 @@ bleach @ file:///opt/conda/conda-bld/bleach_1641577558959/work
 Bottleneck @ file:///private/var/folders/c_/qfmhj66j0tn016nkx_th4hxm0000gp/T/abs_cfe9itj_y_/croot/bottleneck_1707864223016/work
 Brotli @ file:///private/var/folders/c_/qfmhj66j0tn016nkx_th4hxm0000gp/T/abs_67j4p18ie3/croot/brotli-split_1714483158198/work
 cachetools==5.5.0
-certifi @ file:///private/var/folders/sy/f16zz6x50xz3113nwtb9bvq00000gp/T/abs_c7dh9wvd8f/croot/certifi_1725551679893/work/certifi
+certifi @ file:///home/conda/feedstock_root/build_artifacts/certifi_1734380492396/work/certifi
 cffi @ file:///private/var/folders/sy/f16zz6x50xz3113nwtb9bvq00000gp/T/abs_a1n4t3qsjy/croot/cffi_1726856449083/work
 chardet==5.2.0
 charset-normalizer @ file:///croot/charset-normalizer_1721748349566/work
@@ -84,7 +84,7 @@ numexpr @ file:///private/var/folders/c_/qfmhj66j0tn016nkx_th4hxm0000gp/T/abs_c2
 numpy @ file:///private/var/folders/c_/qfmhj66j0tn016nkx_th4hxm0000gp/T/abs_b7iptlxgej/croot/numpy_and_numpy_base_1708638622773/work/dist/numpy-1.26.4-cp39-cp39-macosx_10_9_x86_64.whl#sha256=dccaeb68b46dfe4f1a77e1233a1ec88f7b588f1891be156d87e60c1078b6ff83
 overrides @ file:///private/var/folders/sy/f16zz6x50xz3113nwtb9bvq00000gp/T/abs_a4tzft66ma/croot/overrides_1699371143883/work
 packaging @ file:///private/var/folders/c_/qfmhj66j0tn016nkx_th4hxm0000gp/T/abs_af6w2d9k11/croot/packaging_1720101860461/work
-pandas @ file:///private/var/folders/c_/qfmhj66j0tn016nkx_th4hxm0000gp/T/abs_f3c5inakly/croot/pandas_1718308972943/work/dist/pandas-2.2.2-cp39-cp39-macosx_10_15_x86_64.whl#sha256=55c3cd16b927d1b6f3534487a28000a77bb4f9504824a00a144790da4b22474a
+pandas==2.2.3
 pandocfilters @ file:///opt/conda/conda-bld/pandocfilters_1643405455980/work
 parso @ file:///opt/conda/conda-bld/parso_1641458642106/work
 pexpect @ file:///tmp/build/80754af9/pexpect_1605563209008/work
@@ -128,6 +128,7 @@ scikit-learn @ file:///private/var/folders/c_/qfmhj66j0tn016nkx_th4hxm0000gp/T/a
 scipy @ file:///private/var/folders/sy/f16zz6x50xz3113nwtb9bvq00000gp/T/abs_016_yoiwt8/croot/scipy_1710947331018/work/dist/scipy-1.12.0-cp39-cp39-macosx_10_9_x86_64.whl#sha256=f795207daeebe1a1418f7c6cd1b41d4377f9d1a44d8aa1df55d21fbc88faf51f
 seaborn==0.13.2
 Send2Trash @ file:///private/var/folders/sy/f16zz6x50xz3113nwtb9bvq00000gp/T/abs_6c5du7dh0i/croot/send2trash_1699371145992/work
+sentencepiece==0.1.99
 sip @ file:///private/var/folders/sy/f16zz6x50xz3113nwtb9bvq00000gp/T/abs_6cor4uzugx/croot/sip_1698675942509/work
 six @ file:///tmp/build/80754af9/six_1644875935023/work
 sniffio @ file:///private/var/folders/sy/f16zz6x50xz3113nwtb9bvq00000gp/T/abs_a46njf828g/croot/sniffio_1705431298111/work
