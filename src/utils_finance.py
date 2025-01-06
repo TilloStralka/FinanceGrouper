@@ -980,13 +980,14 @@ def plot_monthly_income_vs_expenses(df, path):
 
 def save_to_pdf(text_functions, plot_functions, output_pdf_path):
     """
-    Generates an overview PDF with text outputs and plots.
+    Generates an overview PDF with plots first and then text outputs.
 
     Parameters:
     text_functions: List of tuples (heading, function) generating text output.
     plot_functions: List of tuples (heading, function) generating plots saved as images.
     output_pdf_path: Path where the PDF should be saved.
     """
+
     # Create the PDF document
     c = canvas.Canvas(output_pdf_path, pagesize=A4)
     width, height = A4
@@ -1007,73 +1008,61 @@ def save_to_pdf(text_functions, plot_functions, output_pdf_path):
     c.drawString(200, current_y, "Financial Report")
     current_y -= 40  # Leave space after the header
 
-    # Add text content with headings
+    # First, add all plot content with headings
     c.setFont("Helvetica", 12)
+    for heading, func in plot_functions:
+        # Generate the plot and get its file path
+        plot_path = func()  # Run the plot function and get the plot path
 
-    # Interleave the text and plot functions in the specified order
-    combined_functions = []
-    max_len = max(len(text_functions), len(plot_functions))
+        # Load the image and get its dimensions
+        img = Image.open(plot_path)
+        img_width, img_height = img.size
 
-    # Append text and plot functions in the order you define them
-    for i in range(max_len):
-        if i < len(plot_functions):
-            combined_functions.append(('plot', plot_functions[i]))        
-        if i < len(text_functions):
-            combined_functions.append(('text', text_functions[i]))
+        # Calculate the scaled size of the image
+        max_width = width - 80  # Allow for 40 pt margin on left/right
+        max_height = height - 80  # Allow for 40 pt margin on top/bottom
+        ratio = min(max_width / img_width, max_height / img_height)
+        img_width = int(img_width * ratio)
+        img_height = int(img_height * ratio)
 
-    # Process the combined list, alternating between text and plots
-    for func_type, (heading, func) in combined_functions:
-        if func_type == 'text':
-            # Estimate required space for heading and some lines of text
-            estimated_lines = 10  # Adjust this number based on expected text length
-            required_space = 20 + (estimated_lines * 15)
-            check_space(required_space)
+        # Estimate required space for heading and image
+        required_space = 20 + img_height + 20  # Heading + Image + Padding
+        check_space(required_space)
 
-            # Add the heading
-            c.setFont("Helvetica-Bold", 12)
-            c.drawString(40, current_y, heading)
-            current_y -= 20  # Adjust Y-position after the heading
+        # Add the heading
+        c.setFont("Helvetica-Bold", 12)
+        c.drawString(40, current_y, heading)
+        current_y -= 20  # Adjust Y-position after the heading
 
-            # Generate the text content
-            c.setFont("Helvetica", 10)
-            output = func()  # Run the text function
-            text_lines = output.split('\n')  # Handle line breaks
-            for line in text_lines:
-                c.drawString(40, current_y, line)  # Draw each line of text
-                current_y -= 15  # Decrease the Y-position for the next line
-                check_space(15)  # Ensure enough space for the next line
+        # Draw the image
+        c.drawImage(plot_path, 40, current_y - img_height, width=img_width, height=img_height)
+        current_y -= img_height + 20  # Adjust Y-position after the image
 
-        elif func_type == 'plot':
-            # Generate the plot and get its file path
-            plot_path = func()  # Run the plot function and get the plot path
+    # Then, add all text content with headings
+    for heading, func in text_functions:
+        # Estimate required space for heading and some lines of text
+        estimated_lines = 10  # Adjust this number based on expected text length
+        required_space = 20 + (estimated_lines * 15)
+        check_space(required_space)
 
-            # Load the image and get its dimensions
-            img = Image.open(plot_path)
-            img_width, img_height = img.size
+        # Add the heading
+        c.setFont("Helvetica-Bold", 12)
+        c.drawString(40, current_y, heading)
+        current_y -= 20  # Adjust Y-position after the heading
 
-            # Calculate the scaled size of the image
-            max_width = width - 80  # Allow for 40 pt margin on left/right
-            max_height = height - 80  # Allow for 40 pt margin on top/bottom
-            ratio = min(max_width / img_width, max_height / img_height)
-            img_width = int(img_width * ratio)
-            img_height = int(img_height * ratio)
-
-            # Estimate required space for heading and image
-            required_space = 20 + img_height + 20  # Heading + Image + Padding
-            check_space(required_space)
-
-            # Add the heading
-            c.setFont("Helvetica-Bold", 12)
-            c.drawString(40, current_y, heading)
-            current_y -= 20  # Adjust Y-position after the heading
-
-            # Draw the image
-            c.drawImage(plot_path, 40, current_y - img_height, width=img_width, height=img_height)
-            current_y -= img_height + 20  # Adjust Y-position after the image
+        # Generate the text content
+        c.setFont("Helvetica", 10)
+        output = func()  # Run the text function
+        text_lines = output.split('\n')  # Handle line breaks
+        for line in text_lines:
+            c.drawString(40, current_y, line)  # Draw each line of text
+            current_y -= 15  # Decrease the Y-position for the next line
+            check_space(15)  # Ensure enough space for the next line
 
     # Save the PDF
     c.save()
     print(f"PDF saved to {output_pdf_path}")
+
     
 
 # Define categories with corresponding key words for the bert categorizer 
@@ -1110,20 +1099,25 @@ categories = {
     "road trip", "long distance travel", "holiday flight", "business class", "economy class",
     "first class", "airport lounge", "train reservation", "train travel", "train ride", 
     "flight booking", "international travel", "domestic flight", "train journey", "airport taxes",
-    "boarding gate", "carry-on baggage", "checked luggage", "travel booking", "trip", "City Flitzer", "Mietwagen", "Teilauto"
+    "boarding gate", "carry-on baggage", "checked luggage", "travel booking", "trip", "City Flitzer", 
+    "Mietwagen", "Teilauto", "Detusche Bahn", "Bahn", "deutschebahnag", "hem", "iberia", "aral", 
+    "tankstelle", "el al", "verkehr", "fahrausweise", "fahrausweis", "bassliner"
 ],
 "Eat Out or Get Food": [
     "groceries", "restaurant", "delivery", "lunch", "dining out", "snacks",
     "coffee shop", "takeout", "meal kit", "gastro", "dean david", "cafe",
     "baeckerei", "coffee fellows", "jim block", "don qui", "Osteria", "subway",
     "backhaus", "burger king", "campus suite", "juice.more", "Backerei",
-    "Avni Terhani", "vegan", "thai", "indisch", "cusine", "bäcker", "baecker"
+    "Avni Terhani", "vegan", "thai", "indisch", "cusine", "bäcker", "baecker", "Wendl", "Pizzeria", 
+    "Pizza", "gelato", "caffee", "caffe", "cafe", "chef", "autogrill", "ditsch", "döner",
+    "schaefers", "bar", "mcdonalds", "mc donalds", "burger king", "kiosk", "crobag", "obst", "tapas",
+    "bistro", "ristorante", "gemuesekiste", "heidebrot", "brot", "feinkost", "del mare", "elbane", "der beck"
     ],
 "Cash": [
     "bargeld", "automat", "cash", "ATM", "eurocash", "withdrawal", "cash withdrawal",
     "sparkasse", "bankautomat", "geldautomat", "bareinzahlung", "auszahlung", 
     "cashpoint", "bank cash", "barzahlung", "ATM withdrawal", "bank withdrawal",
-    "Bargeldabhebung", "Barabhebung", "Transact", "Straße"
+    "Bargeldabhebung", "Barabhebung", "Transact", "Straße", "volksbank"
 ],
 "Supermarket and Drogerie": [
     "karstadt", "galeria", "kaufhof", "mueller", "migros", "coop", "dm fil", 
@@ -1132,7 +1126,8 @@ categories = {
     "edeka center", "alnatura", "rewe", "rewe city", "vollcorner", "konsum", 
     "penny", "netto", "netto city", "kaufland", "real", "marktkauf", "hit", 
     "tegut", "spar", "eurospar", "interspar", "denn's biomarkt", "biomarkt", 
-    "basic", "metro", "famila", "globus", "toom", "norma", "baekcer", "bäcker", "bakery"
+    "basic", "metro", "famila", "globus", "norma", "baekcer", "bäcker", "bakery", 
+    "supermarket", "supermarkt", "backwerk", "supermercato", "bioladen"
 ],
 "Utilities": [
     "electricity", "strom", "power", "energie", "energy", 
@@ -1189,7 +1184,7 @@ categories = {
     "alternative medizin", "orthopädie", "dermatologie", "diabetes", 
     "arztpraxis", "arztbesuch", "sprechstunde", "arzttermin", 
     "apotheken umschau", "medizinische hilfsmittel", "krankenbett", 
-    "erste hilfe", "first aid", "gesundheitsamt", "health authority"
+    "erste hilfe", "first aid", "gesundheitsamt", "health authority", "shopapothek", "apothek", "dr.", "adamy", "porst"
 ],
 "Saving, Investing and Debt Payments": [
     "debt repayment", "loan repayment", "debt", "schulden", "credit card debt", 
@@ -1205,7 +1200,8 @@ categories = {
     "stock trading", "robo-advisor", "trade republic", "depot", "brokerage fees", "robo-trading", 
     "forex trading", "foreign exchange", "crypto exchange", "bitcoin exchange", "commodity trading", 
     "real estate investment", "immobilieninvestition", "crowdinvesting", "crowdfunding", 
-    "savings account", "bank savings", "banksparplan", "savings bond", "money market", "investment savings"
+    "savings account", "bank savings", "banksparplan", "savings bond", "money market", "investment savings", "bundnis 90", "malteser", "wikimedia",
+    "Ruecklagen", "rücklagen", "support", "beitrag", "gesellschaft", "paypal"
 ],
 "Personal Spending": [
     "gym", "fitness studio", "fitness center", "workout", "training", "sports", "yoga", 
@@ -1219,7 +1215,9 @@ categories = {
     "sportswear", "activewear", "athletic shoes", "outdoor gear", "mountain biking", "snowboarding", 
     "hiking", "running", "bicycle accessories", "fitness tracker", "wearable tech", "smartwatch", 
     "sports accessories", "personal trainer", "group fitness class", "fitness retreat", 
-    "outdoor activities", "fitness nutrition", "protein shakes", "sports drink", "running shoes"
+    "outdoor activities", "fitness nutrition", "protein shakes", "sports drink", "running shoes", 
+    "SPORTPARK", "obi", "toom", "Telefonica", "spotify", "soundcloud", "schuster", "bandcamp", "sport scheck",
+    "musikhaus", "beatport", "apinima", "nicama", "wilde moehre", "regenbogen", "axte", "sport", "tapir"
 ],
 "Online Shopping": [
     "otto", "conrad elec", "amzn mktp", "amzn", "amazon", "ebay", "aliexpress", "wish", "etsy",
@@ -1250,10 +1248,12 @@ categories = {
     "classical concert", "live theater", "art gallery", "antique show", "cultural event", 
     "family fun", "kids' event", "childrens' activity", "boardwalk", "water park", "circus", 
     "golf", "mini golf", "bungee jumping", "yoga retreat", "meditation retreat", "Fremdwährung", 
-    "Boulderhalle"
+    "Boulderhalle", "airbnb", "autohof", "hotel", "hostel", "therme", "thalia"
 ],
     "Miscellaneous": [
         "unexpected", "miscellaneous", "other", "donation", "charity", "gift",
         "cash withdrawal", "uncategorized", "random", "small purchase"
     ],
 }
+
+

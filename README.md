@@ -63,25 +63,27 @@ conda install -c conda-forge sentencepiece
 ------------
 
     ├── LICENSE
-    ├── README.md             <- This top-level README file.
+    ├── README.md                      <- This top-level README file.
     │
-    ├── data                  <- Your raw and processed data 
-    │                            (In Git are dummy files included)
+    ├── data                           <- Your raw and processed data 
+    │                                     (In Git are dummy files included)
     │
-    ├── notebooks             <- Jupyter notebook for analysis and visualizations.
-    │                            (This contains the whole all in one process)
+    ├── notebooks             
+    │   ├── FinanceTool.ipynb          <- Jupyter notebook for analysis and visualizations.
+    │   │                                 (This contains the whole all in one process)
+    │   └── Dummy_data_generator.ipynb <- This Jupyter notebooks is only for the dummy data generation / IBAN replacement    
     │
-    ├── plots                 <- Here all the generated plots/visualizations are saved as pngs.
+    ├── plots                          <- Here all the generated plots/visualizations are saved as pngs.
     │
-    ├── reports               <- Generated report which gives an financial overview.
-    │                            (It uses the plots in the folder above)
+    ├── reports                        <- Generated report which gives an financial overview.
+    │                                     (It uses the plots in the folder above)
     │
-    ├── requirements.txt      <- Python dependencies.
+    ├── requirements.txt               <- Python dependencies.
     │
-    ├── src                   <- Source code for this project.
-    │   ├── __init__.py       <- Makes src a Python module.
-    │   └── utils_finance.py  <- This contains all the separate defined functions 
-    │                            which are deployed in the notebook.
+    ├── src                            <- Source code for this project.
+    │   ├── __init__.py                <- Makes src a Python module.
+    │   └── utils_finance.py           <- This contains all the separate defined functions 
+    │                                     which are deployed in the notebook.
 
 ==============================
 
