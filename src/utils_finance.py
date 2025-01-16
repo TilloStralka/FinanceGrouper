@@ -79,23 +79,27 @@ Most frequent outgoing target: {most_frequent_expense_target}
 
 def truncate_strings_in_dataframe(df, max_length=30):
     """
-    Truncates all strings in a pandas DataFrame to a specified maximum length.
+    Truncates all strings in a pandas DataFrame to a specified maximum length 
+    and replaces multiple consecutive spaces with a single space.
 
     Parameters:
     df (DataFrame): The pandas DataFrame to process.
     max_length (int): The maximum length for strings.
 
     Returns:
-    DataFrame: A new DataFrame with truncated strings.
+    DataFrame: A new DataFrame with truncated strings and normalized spaces.
     """
     # Create a copy of the DataFrame to avoid modifying the original
-    df_truncated = df
+    df_truncated = df.copy()
     
-    # Apply truncation to all string entries
+    # Apply truncation and space normalization to all string entries
     for col in df_truncated.select_dtypes(include=['object', 'string', 'string[python]']).columns:
-        df_truncated[col] = df_truncated[col].apply(lambda x: x[:max_length] if isinstance(x, str) else x)
+        df_truncated[col] = df_truncated[col].apply(
+            lambda x: ' '.join(x.split())[:max_length] if isinstance(x, str) else x
+        )
     
     return df_truncated
+
 
 
 def analyze_by_category(df):
