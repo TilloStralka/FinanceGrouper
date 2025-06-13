@@ -22,6 +22,12 @@ from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
 from PIL import Image
 
+# To hinder LaTeX calling of Function 
+plt.rcParams.update({
+    "text.usetex": False,
+    "font.family": "serif",
+    "font.serif": ["Computer Modern"]
+})
 
 # Path to the neighboring 'data' folder in the local repository
 data_path = os.path.abspath(os.path.join(os.getcwd(), '..', 'data'))
@@ -81,24 +87,20 @@ def truncate_strings_in_dataframe(df, max_length=30):
     """
     Truncates all strings in a pandas DataFrame to a specified maximum length 
     and replaces multiple consecutive spaces with a single space.
-
-    Parameters:
-    df (DataFrame): The pandas DataFrame to process.
-    max_length (int): The maximum length for strings.
-
-    Returns:
-    DataFrame: A new DataFrame with truncated strings and normalized spaces.
     """
-    # Create a copy of the DataFrame to avoid modifying the original
     df_truncated = df.copy()
     
-    # Apply truncation and space normalization to all string entries
     for col in df_truncated.select_dtypes(include=['object', 'string', 'string[python]']).columns:
         df_truncated[col] = df_truncated[col].apply(
-            lambda x: ' '.join(x.split())[:max_length] if isinstance(x, str) else x
+            lambda x: ' '.join(x.split()) if isinstance(x, str) else x
+        )
+        df_truncated[col] = df_truncated[col].apply(
+            lambda x: x[:max_length].strip() if isinstance(x, str) else x
         )
     
     return df_truncated
+
+
 
 
 
@@ -835,9 +837,9 @@ def plot_largest_expenses_income(df, path):
     """
     # Use LaTeX styling and font for the plots
     plt.rcParams.update(plt.rcParamsDefault)
-    mpl.rcParams['text.usetex'] = True
+    mpl.rcParams['text.usetex'] = False
     rc('font', **{'family': 'serif', 'serif': ['Computer Modern']})
-    rc('text', usetex=True)
+    rc('text', usetex=False)
 
     # Get the function name dynamically
     function_name = inspect.currentframe().f_code.co_name
@@ -1067,7 +1069,21 @@ def save_to_pdf(text_functions, plot_functions, output_pdf_path):
     c.save()
     print(f"PDF saved to {output_pdf_path}")
 
+# Helper function to categorize a transaction based on FinBERT predictions
+def categorize_transaction(description):
+    # Apply the FinBERT-tone model
+    results = classifier(description)
     
+    # Map FinBERT's predictions to categories (custom logic based on labels and description)
+    category_scores = {cat: 0 for cat in categories.keys()}
+    for cat, keywords in categories.items():
+        if any(keyword.lower() in description.lower() for keyword in keywords):
+            category_scores[cat] += 1
+    
+    # Return the best matching category or Miscellaneous if no match found
+    best_category = max(category_scores, key=category_scores.get)
+    return best_category if category_scores[best_category] > 0 else "Miscellaneous"
+
 
 # Define categories with corresponding key words for the bert categorizer 
 categories = {
