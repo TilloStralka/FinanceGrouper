@@ -1069,6 +1069,26 @@ def save_to_pdf(text_functions, plot_functions, output_pdf_path):
     c.save()
     print(f"PDF saved to {output_pdf_path}")
 
+
+def translate_text(text):
+    """
+    Translates the given text from German to English using MarianMT.
+
+    Parameters:
+        text (str): The text to translate.
+
+    Returns:
+        str: Translated text or an error message if translation fails.
+    """
+    try:
+        # Tokenize the text and perform translation
+        inputs = tokenizer(text, return_tensors="pt", padding=True, truncation=True)
+        translated = model.generate(**inputs)
+        # Decode the translated output
+        return tokenizer.decode(translated[0], skip_special_tokens=True)
+    except Exception as e:
+        return f"Error during translation: {e}"
+
 # Helper function to categorize a transaction based on FinBERT predictions
 def categorize_transaction(description):
     # Apply the FinBERT-tone model

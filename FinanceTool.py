@@ -112,7 +112,7 @@ for filename in os.listdir(data_path):
         year = int(last_four_digits)
 
         # Read the .csv file into a DataFrame
-        print(f"Reading file: {file_path}")
+        # print(f"Reading file: {file_path}")
         df = pd.read_csv(file_path, sep=',', skiprows=headerSize, header=0, encoding='utf-8-sig')
 
         # Save the DataFrame under a dynamic name
@@ -122,8 +122,8 @@ for filename in os.listdir(data_path):
         dataframes.append(df)
 
         # Display the shape and column names of the DataFrame
-        print('Shape:', df.shape)
-        print('Column names:', df.columns)
+        # print('Shape:', df.shape)
+        # print('Column names:', df.columns)
 
 # Concatenate all data to a single DataFrame
 df_all_years = pd.concat(dataframes, ignore_index=True)
@@ -190,9 +190,6 @@ for col in string_columns:
     df[col] = df[col].apply(lambda x: x if isinstance(x, str) else pd.NA)
     # Convert the column to typ 'string'
     df[col] = df[col].astype('string')
-
-#Check if it worked 
-inspect_data(df)
 
 
 # Function to replace multiple spaces and new lines with a single space
@@ -285,9 +282,6 @@ df.head()
 # Default is set to 30 in the function, if none is given 
 df = truncate_strings_in_dataframe(df, max_length=30)
 
-inspect_data(df)
-df.head()
-
 
 # # E. Analysis of the financial data
 
@@ -297,7 +291,7 @@ df.head()
 # + Identify the largest expenses and sources of income.
 # Performs basic financial analysis including total income, expenses, and largest transactions
 text_1 = basic_analysis(df)
-print(text_1)
+# print(text_1)
 
 
 # ## E. 2 Income and Expense Categorization
@@ -305,7 +299,7 @@ print(text_1)
 # + This helps understand which categories contribute the most to expenses and income.
 # Group by 'Umsatztyp' and calculate total income and expenses per category
 text_2 = analyze_by_category(df)
-print(text_2)
+# print(text_2)
 
 
 # ## E. 3 Income vs Expense Trend Over Time 
@@ -318,7 +312,7 @@ income_expense_trend(df, plots_path)
 # Calculate the average monthly income and expense to get an overall view of typical monthly financial activity.
 # Calculates average monthly income and expenses.
 text3 = average_monthly_stats(df)
-print(text3)
+# print(text3)
 
 
 # ## E. 5 Recurring Transactions Detection
